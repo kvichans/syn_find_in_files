@@ -2,7 +2,7 @@
 Authors:
     Andrey Kvichansky    (kvichans on github.com)
 Version:
-    '1.1.0 2016-11-24'
+    '1.2.1 2017-02-09'
 Content
     log                 Logger with timing
     get_translation     i18n
@@ -13,12 +13,14 @@ ToDo: (see end of file)
 import  sys, os, gettext, logging, inspect
 from    time        import perf_counter
 
-import  sw              as      app
-#import cudatext        as      app
-from    sw              import  ed
-#from   cudatext        import  ed
-from . import cudax_lib as      apx
-#import cudax_lib       as      apx
+try:
+    import  cudatext            as app
+    from    cudatext        import ed
+    import  cudax_lib           as apx
+except:
+    import  sw                  as app
+    from    sw              import ed
+    from . import cudax_lib     as apx
 
 pass;                           # Logging
 pass;                           from pprint import pformat
@@ -330,7 +332,7 @@ def fit_top_by_env(what_tp, base_tp='label'):
     fit4lb  = ENV2FITS.get(env, ENV2FITS.get('win'))
     fit     = 0
     if base_tp=='label':
-        fit = CdSw.get_opt('dlg_wrapper_fit_va_for_'+what_tp, fit4lb.get(what_tp, 0))
+        fit = apx.get_opt('dlg_wrapper_fit_va_for_'+what_tp, fit4lb.get(what_tp, 0))
     else:
         fit = fit_top_by_env(what_tp) - fit_top_by_env(base_tp)
     pass;                      #log('what_tp, base_tp, fit={}',(what_tp, base_tp, fit))
@@ -497,9 +499,9 @@ def dlg_wrapper(title, w, h, cnts, in_vals={}, focus_cid=None):
        #for cnt
     pass;                      #log('ok ctrls_l={}',pformat(ctrls_l, width=120))
 
-    pass;                       ctrls_fn=r'c:\temp\dlg_custom_ctrls.txt'
-    pass;                       open(ctrls_fn, 'w', encoding='UTF-8').write('\n'.join(ctrls_l).replace('\r',''))
-    pass;                       log(f(r'app.dlg_custom("{t}",{w},{h},open(r"{fn}",encoding="UTF-8").read(), {f})',t=title, w=w, h=h, fn=ctrls_fn, f=cid2i.get(focus_cid, -1)))
+    pass;                      #ctrls_fn=r'c:\temp\dlg_custom_ctrls.txt'
+    pass;                      #open(ctrls_fn, 'w', encoding='UTF-8').write('\n'.join(ctrls_l).replace('\r',''))
+    pass;                      #log(f(r'app.dlg_custom("{t}",{w},{h},open(r"{fn}",encoding="UTF-8").read(), {f})',t=title, w=w, h=h, fn=ctrls_fn, f=cid2i.get(focus_cid, -1)))
     ans     = app.dlg_custom(title, w, h, '\n'.join(ctrls_l), cid2i.get(focus_cid, -1))
     if ans is None: return None, None, None, None   # btn_cid, {cid:v}, focus_cid, [cid]
 
@@ -637,8 +639,7 @@ def dlg_valign_consts():
             ,dict(cid='-'       ,tp='bt'    ,t=DLG_H-30         ,l=230  ,w=100  ,cap=_('Cancel')        )
             ], vals, focus_cid=focused)
         if aid is None or aid=='-':    return#while True
-        scam        = CdSw.app_proc(app.PROC_GET_KEYSTATE, '') if app.app_api_version()>='1.0.143' else ''
-#       scam        = app.app_proc(app.PROC_GET_KEYSTATE, '') if app.app_api_version()>='1.0.143' else ''
+        scam        = app.app_proc(app.PROC_GET_KEYSTATE, '') if app.app_api_version()>='1.0.143' else ''
         aid_m       = scam + '/' + aid if scam and scam!='a' else aid   # smth == a/smth
         focused = chds[0] if 1==len(chds) else focused
         if aid[:2]=='up' or aid[:2]=='dn':
@@ -718,6 +719,27 @@ class CdSw:
     ENC_UTF8    = str(app.EDENC_UTF8_NOBOM) if 'sw'==app.__name__ else 'UTF-8'
 
     @staticmethod
+    def save(_ed):
+        if 'sw'==app.__name__:
+            return app.file_save()      ##!!
+        else:
+            return _ed.save()
+
+    @staticmethod
+    def ed_group(grp):
+        if 'sw'==app.__name__:
+            return ed                   ##!!
+        else:
+            return app.ed_group(grp)
+
+    @staticmethod
+    def app_idle():
+        if 'sw'==app.__name__:
+            pass
+        else:
+            return app.app_idle()
+
+    @staticmethod
     def file_open(filename, group=-1):
         if 'sw'==app.__name__:
             ##!! Activate group
@@ -769,19 +791,6 @@ class CdSw:
         else:
             return _ed.get_carets()
 
-    @staticmethod
-    def append_line(line, to_ed):
-        ''' Append one line to end of _ed. Return row of added line.'''
-        if 'sw'==app.__name__:
-            to_ed.set_text_line(-1, line)
-        else:
-            if to_ed.get_line_count()==1 and not to_ed.get_text_line(0):    # Empty doc
-                to_ed.set_text_line(0, line)
-                return 0
-            else:                                                           # Append new
-                to_ed.set_text_line(-1, line)
-        return to_ed.get_line_count()-2
-
     MARKERS_ADD             = 1 if 'sw'==app.__name__ else app.MARKERS_ADD
     MARKERS_DELETE_ALL      = 2 if 'sw'==app.__name__ else app.MARKERS_DELETE_ALL
     @staticmethod
@@ -800,14 +809,11 @@ class CdSw:
             return _ed.attr(id, **kwargs)             
 
     PROC_GET_FIND_OPTIONS   = 22 if 'sw'==app.__name__ else app.PROC_GET_FIND_OPTIONS
-    PROC_GET_KEYSTATE       = 43 if 'sw'==app.__name__ else app.PROC_GET_KEYSTATE
     @staticmethod
     def app_proc(pid, defv):
         if 'sw'!=app.__name__:
             return app.app_proc(pid, defv)
         if False:pass
-        elif pid==CdSw.PROC_GET_KEYSTATE:
-            return ''
         elif pid==CdSw.PROC_GET_FIND_OPTIONS:
             return ''
         return ''
@@ -853,13 +859,6 @@ class CdSw:
             return app.msg_status(msg)
         else:
             return app.msg_status_alt(msg, secs)
-    
-    @staticmethod
-    def get_opt(path, def_value=None, lev='dulf', ed_cfg=ed):
-        if 'sw'==app.__name__:
-            return def_value
-        else:
-            return apx.get_opt(path, def_value, lev, ed_cfg)
     
     @staticmethod
     def get_setting_dir():

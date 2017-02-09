@@ -2,34 +2,33 @@
 Authors:
     Andrey Kvichansky    (kvichans on github.com)
 Version:
-    '1.1.13 2017-02-07'
+    '1.2.1 2017-02-09'
 ToDo: (see end of file)
 '''
 
 import  re, os, sys, locale, json, collections, traceback, time
 from    fnmatch         import fnmatch
 
-import  sw              as      app
-from    sw              import  ed
-from . import cudax_lib as      apx
-#import  cudatext            as app
-#from    cudatext        import ed
-#import  cudatext_cmd        as cmds
-#import  cudax_lib           as apx
+try:
+    import  cudatext            as app
+    from    cudatext        import ed
+    import  cudax_lib           as apx
+except:
+    import  sw                  as app
+    from    sw              import ed
+    from . import cudax_lib     as apx
 
-from    .cd_plug_lib    import  *
+from    .cd_plug_lib        import *
 from    .chardet.universaldetector import UniversalDetector
 
 OrdDict = collections.OrderedDict
-c9, c10, c13    = chr(9), chr(10), chr(13) 
-#FROM_API_VERSION= '1.0.119'
 
-pass;                           Tr.tr   = Tr(CdSw.get_opt('fif_log_file', '')) if CdSw.get_opt('fif_log_file', '') else Tr.tr
-pass;                           LOG     = (-1==-1)         or CdSw.get_opt('fif_LOG'   , False) # Do or dont logging.
-pass;                           FNDLOG  = (-2==-2) and LOG or CdSw.get_opt('fif_FNDLOG', False)
-pass;                           RPTLOG  = (-3==-3) and LOG or CdSw.get_opt('fif_RPTLOG', False)
-pass;                           NAVLOG  = (-4==-4) and LOG or CdSw.get_opt('fif_NAVLOG', False)
-pass;                           DBG_DATA_TO_REPORT  =         CdSw.get_opt('fif_DBG_data_to_report', False)
+pass;                           Tr.tr   = Tr(apx.get_opt('fif_log_file', '')) if apx.get_opt('fif_log_file', '') else Tr.tr
+pass;                           LOG     = (-1== 1)         or apx.get_opt('fif_LOG'   , False) # Do or dont logging.
+pass;                           FNDLOG  = (-2== 2) and LOG or apx.get_opt('fif_FNDLOG', False)
+pass;                           RPTLOG  = (-3== 3) and LOG or apx.get_opt('fif_RPTLOG', False)
+pass;                           NAVLOG  = (-4== 4) and LOG or apx.get_opt('fif_NAVLOG', False)
+pass;                           DBG_DATA_TO_REPORT  =         apx.get_opt('fif_DBG_data_to_report', False)
 pass;                           from pprint import pformat
 pass;                           pf=lambda d:pformat(d,width=150)
 pass;                           ##!! waits correction
@@ -55,25 +54,27 @@ SHTP_SPARS_R    = _('dir/file/(r):line')
 SHTP_SPARS_RCL  = _('dir/file/(r:c:l):line')
 ENCO_DETD       = _('detect')
 
-lexers_l        = CdSw.get_opt('fif_lexers'                  , ['Search results', 'FiF'])
+lexers_l        = apx.get_opt('fif_lexers'                  , ['Search results', 'FiF'])
 FIF_LEXER       = apx.choose_avail_lexer(lexers_l) #select_lexer(lexers_l)
 lexers_l        = list(map(lambda s: s.upper(), lexers_l))
-USE_SEL_ON_START= CdSw.get_opt('fif_use_selection_on_start'  , False)
-ESC_FULL_STOP   = CdSw.get_opt('fif_esc_full_stop'           , False)
-REPORT_FAIL     = CdSw.get_opt('fif_report_no_matches'       , False)
-FOLD_PREV_RES   = CdSw.get_opt('fif_fold_prev_res'           , False)
-CLOSE_AFTER_GOOD= CdSw.get_opt('fif_hide_if_success'         , False)
-LEN_TRG_IN_TITLE= CdSw.get_opt('fif_len_target_in_title'     , 10)
-BLOCKSIZE       = CdSw.get_opt('fif_read_head_size'          , 1024)
-CONTEXT_WIDTH   = CdSw.get_opt('fif_context_width'           , 1)
-SKIP_FILE_SIZE  = CdSw.get_opt('fif_skip_file_size_more_Kb'  , 0)
-AUTO_SAVE       = CdSw.get_opt('fif_auto_save_if_file'       , False)
-FOCUS_TO_RPT    = CdSw.get_opt('fif_focus_to_rpt'            , True)
-SAVE_REQ_TO_RPT = CdSw.get_opt('fif_save_request_to_rpt'     , False)
+USE_SEL_ON_START= apx.get_opt('fif_use_selection_on_start'  , False)
+ESC_FULL_STOP   = apx.get_opt('fif_esc_full_stop'           , False)
+REPORT_FAIL     = apx.get_opt('fif_report_no_matches'       , False)
+FOLD_PREV_RES   = apx.get_opt('fif_fold_prev_res'           , False)
+CLOSE_AFTER_GOOD= apx.get_opt('fif_hide_if_success'         , False)
+LEN_TRG_IN_TITLE= apx.get_opt('fif_len_target_in_title'     , 10)
+BLOCKSIZE       = apx.get_opt('fif_read_head_size'          , 1024)
+CONTEXT_WIDTH   = apx.get_opt('fif_context_width'           , 1)
+SKIP_FILE_SIZE  = apx.get_opt('fif_skip_file_size_more_Kb'  , 0)
+AUTO_SAVE       = apx.get_opt('fif_auto_save_if_file'       , False)
+FOCUS_TO_RPT    = apx.get_opt('fif_focus_to_rpt'            , True)
+SAVE_REQ_TO_RPT = apx.get_opt('fif_save_request_to_rpt'     , False)
+if 'sw'==app.__name__:
+    FOLD_PREV_RES   = False
 
-MARK_FIND_STYLE = CdSw.get_opt('fif_mark_style'              , {'borders':{'bottom':'dotted'}})
-MARK_TREPL_STYLE= CdSw.get_opt('fif_mark_true_replace_style' , {'borders':{'bottom':'solid'}})
-MARK_FREPL_STYLE= CdSw.get_opt('fif_mark_false_replace_style', {'borders':{'bottom':'wave'},'color_border':'#777'})
+MARK_FIND_STYLE = apx.get_opt('fif_mark_style'              , {'borders':{'bottom':'dotted'}})
+MARK_TREPL_STYLE= apx.get_opt('fif_mark_true_replace_style' , {'borders':{'bottom':'solid'}})
+MARK_FREPL_STYLE= apx.get_opt('fif_mark_false_replace_style', {'borders':{'bottom':'wave'},'color_border':'#777'})
 def fit_mark_style_for_attr(js:dict)->dict:
     """ Convert 
             {"color_back":"", "color_font":"", "font_bold":false, "font_italic":false
@@ -203,18 +204,17 @@ def report_to_tab(rpt_data:dict
                 , **style
                 )
     def append_line(line:str, to_ed=rpt_ed)->int:
-        return CdSw.append_line(line, to_ed)
-#       ''' Append one line to end of to_ed. Return row of added line.'''
-#       pass;                   RPTLOG and log('line={}',repr(line))
-#       line    = line.rstrip('\r\n')
-#       if to_ed.get_line_count()==1 and not to_ed.get_text_line(0):
-#           # Empty doc
-#           to_ed.set_text_line(0, line)
-#           return 0
-#       else:
-#           to_ed.set_text_line(-1, line)
-#       return to_ed.get_line_count()-2
-#      #def append_line
+        ''' Append one line to end of to_ed. Return row of added line.'''
+        pass;                  #RPTLOG and log('line={}',repr(line))
+        line    = line.rstrip('\r\n')
+        if to_ed.get_line_count()==1 and not to_ed.get_text_line(0):
+            # Empty doc
+            to_ed.set_text_line(0, line)
+            return 0
+        else:
+            to_ed.set_text_line(-1, line)
+        return to_ed.get_line_count()-2
+       #def append_line
     def calc_width(_rpt_data, _algn, _need_rcl, _need_pth, _only_fn):
         # Find max(len(*)) for path, row, col, ln
         _fl_wd, _rw_wd, _cl_wd, _ln_wd  = 0, 0, 0, 0
@@ -428,7 +428,8 @@ def report_to_tab(rpt_data:dict
         line0 = rpt_ed.get_text_line(0)
         rpt_ed.set_text_line(0, '')
         rpt_ed.set_text_line(0, line0)
-        app.app_idle()
+        CdSw.app_idle()
+#       app.app_idle()
     if app.app_api_version()>='1.0.162':
         pass;                   RPTLOG and log('rpt_ed.lexer_scan(row4crt) row4crt={}',row4crt)
 ##!!        rpt_ed.lexer_scan(row4crt)
@@ -438,7 +439,8 @@ def report_to_tab(rpt_data:dict
 #   rpt_ed.set_caret(      0, row4crt)
 
     if AUTO_SAVE and os.path.isfile(rpt_ed.get_filename()):
-        rpt_ed.save()
+        CdSw.save(rpt_ed)
+#       rpt_ed.save()
     pass;                       LOG and log('==) stoped={}',(rpt_stop))
    #def report_to_tab
 
@@ -513,7 +515,7 @@ def _open_and_nav(where:str, how_act:str, path:str, rw=-1, cl=-1, ln=-1):
         CdSw.set_caret(op_ed,   cl+ln,  rw,     cl, rw)
 #       op_ed.set_caret(        cl+ln,  rw,     cl, rw)
     if rw!=-1:
-        top_row = max(0, rw - max(5, CdSw.get_opt('find_indent_vert', -5, ed_cfg=op_ed)))
+        top_row = max(0, rw - max(5, apx.get_opt('find_indent_vert', -5, ed_cfg=op_ed)))
         op_ed.set_prop(app.PROP_LINE_TOP, str(top_row))
 
     if how_act=='move' or the_ed_grp == ed.get_prop(app.PROP_INDEX_GROUP):
@@ -648,7 +650,8 @@ def jump_to(drct:str, what:str):
     pass;                       NAVLOG and log('base_path,base_rw={}',(base_path,base_rw))
     
     def set_rpt_active_row(_row):
-        grp_tab = app.ed_group(rpt_grp)
+        grp_tab = CdSw.ed_group(rpt_grp)
+#       grp_tab = app.ed_group(rpt_grp)
         rpt_vis = grp_tab.get_prop(app.PROP_TAB_ID) == rpt_ed.get_prop(app.PROP_TAB_ID)
         rpt_act =      ed.get_prop(app.PROP_TAB_ID) == rpt_ed.get_prop(app.PROP_TAB_ID)
         if  rpt_vis:
@@ -661,7 +664,7 @@ def jump_to(drct:str, what:str):
             if not rpt_act:
                 tid = ed.get_prop(app.PROP_TAB_ID)
                 rpt_ed.focus()
-            rpt_ed.set_prop(     app.PROP_LINE_TOP, str(max(0, _row - max(5, CdSw.get_opt('find_indent_vert', -5)))))
+            rpt_ed.set_prop(     app.PROP_LINE_TOP, str(max(0, _row - max(5, apx.get_opt('find_indent_vert', -5)))))
             if not rpt_act:
                 apx.get_tab_by_id(tid).focus()
        #def set_rpt_active_row
@@ -910,7 +913,7 @@ def find_in_files(how_walk:dict, what_find:dict, what_save:dict, how_rpt:dict, p
         return encoding
        #def detect_encoding
     detector= UniversalDetector() if ENCO_DETD in enco_l else None
-    rpt_enc_fail= CdSw.get_opt('fif_log_encoding_fail', False)
+    rpt_enc_fail= apx.get_opt('fif_log_encoding_fail', False)
 
     def find_for_body(   _body:str, _dept:int, _rsp_l:list, _rsp_i:dict):
         if pttn_r.search(_body):

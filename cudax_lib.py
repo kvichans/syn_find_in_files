@@ -2,15 +2,16 @@
 Authors:
     Andrey Kvichansky    (kvichans on github)
 Version:
-    '0.5.7.AT 2016-09-05'
+    '0.6.1 2017-02-09'
 Wiki: github.com/kvichans/cudax_lib/wiki
 ToDo: (see end of file)
 '''
 
+import  os, json, re, sys, collections
+
 import  sw        as app
 from    sw    import ed
-import  sw_cmd    as cmds
-import  os, json, re, sys, collections
+#import sw_cmd    as cmds
 
 # Overridden option tools:
 APP_DEFAULT_OPTS    = {}
@@ -68,6 +69,110 @@ def _json_loads(s, **kw):
     return ans
 #   return json.loads(s, **kw)
     #def _json_loads
+
+LAST_FILE_OPTS      = {}
+def _get_file_opts(opts_json, def_opts={}, **kw):
+#   global LAST_FILE_OPTS
+    if not os.path.exists(opts_json):
+        pass;                  #LOG and log('no {}',os.path.basename(opts_json))
+        LAST_FILE_OPTS.pop(opts_json, None)
+        return def_opts
+    mtime_os    = os.path.getmtime(opts_json)
+    if opts_json not in LAST_FILE_OPTS:
+        pass;                  #LOG and log('load "{}" with mtime_os={}',os.path.basename(opts_json), int(mtime_os))
+        opts    = _json_loads(open(opts_json, encoding='utf8').read(), **kw)
+        LAST_FILE_OPTS[opts_json]       = (opts, mtime_os)
+    else:
+        opts, mtime = LAST_FILE_OPTS[opts_json]
+        if mtime_os > mtime:
+            pass;              #LOG and log('reload "{}" with mtime, mtime_os={}',os.path.basename(opts_json), (int(mtime), int(mtime_os)))
+            opts= _json_loads(open(opts_json, encoding='utf8').read(), **kw)
+            LAST_FILE_OPTS[opts_json]   = (opts, mtime_os)
+    return opts
+   #def _get_file_opts
+
+CONFIG_LEV_DEF      = 'def'
+CONFIG_LEV_USER     = 'user'
+CONFIG_LEV_LEX      = 'lex'
+CONFIG_LEV_FILE     = 'file'
+CONFIG_LEV_ALL      = 'dulf'
+def get_opt(path, def_value=None, lev=None, ed_cfg=None):
+    ''' Adapter for "Overridden options tool" from CudaText.
+        Config pairs key:val are read from
+            <app>/settings/user.json
+        Params
+            path        OptKey name
+            def_value   If no OptKey into config file
+            lev         (ignoreed)
+            ed_cfg      (ignoreed)
+        Return          Last found in config files default[/user[/lexer]] or def_value
+    '''
+    pass;                      #LOG and log('path, def_va, lev, ed_cfg={}',(path, def_value, lev, ed_cfg))
+    usr_json    = os.path.join(app.app_ini_dir(), 'user.json')
+#   if not os.path.exists(usr_json):
+#       return def_value
+    usr_opts    = _get_file_opts(usr_json)
+    return usr_opts.get(path, def_value)
+   #def get_opt
+
+def set_opt(path, value, lev=None, ed_cfg=None):
+    ''' Adapter for "Overridden options tool" from CudaText.
+        Config pairs key:val are add/update/delete into
+            <app>/settings/user.json
+        Params
+            path        OptKey name
+            value       Value for setting or deleting
+                            None        Delete pair (last key in path)
+                            is not None Add or update pair value
+            lev         (ignoreed)
+            ed_cfg      (ignoreed)
+        Return          The value (second param) or None if fail
+    '''
+    usr_json    = os.path.join(app.app_ini_dir(), 'user.json')
+    pass;                      #LOG and log('path, value,usr_json={}',(path, value,usr_json))
+    if not os.path.exists(usr_json)  and value is     None:
+        pass;                  #LOG and log('no usr_json and del val',())
+        return None #?? success or fail?
+    if not os.path.exists(usr_json):#and value is not None
+        # First pair for this file
+        dct     = {path:value}
+        open(usr_json, 'w', encoding='utf8').write(json.dumps(dct, indent=4))
+        pass;                  #LOG and log('save body as dct={}',(dct))
+        return value
+
+    # Try to modify file
+    body    = open(usr_json, encoding='utf8').read()
+    value4js= json.dumps({'':value})[len('{"": '):-1]    # format for json
+    # Assumptions:
+    #    one key:val into one row
+    re_key_val  = r'^\s*,?\s*"{}"\s*:.+'.format(re.escape(path))
+    cre         = re.compile(re_key_val, re.MULTILINE)
+    has_pair    = cre.search(body) is not None
+    pass;                      #LOG and log('re_key_val, has_pair={}',(re_key_val,has_pair))
+    if False:pass
+    elif has_pair and value is None:
+        # Delete!
+        pass;                  #LOG and log('del!',)
+        body    = cre.sub('', body)
+    elif has_pair and value is not None:
+        # Update!
+        pass;                  #LOG and log('upd!',)
+        body    = cre.sub('    "{}": {},'.format(path, value4js), body)
+    elif not has_pair and value is None:
+        # OK
+        pass
+    elif not has_pair:
+        # Add! before end
+        pass;                  #LOG and log('add!',)
+        body    = body.rstrip(' \t\r\n')[:-1].rstrip(' \t\r\n')
+        body= body+'{}\n    "{}": {},\n}}'.format(
+                     '' if body[-1] in ',{' else ','
+                   , path
+                   , value4js)
+    pass;                      #LOG and log('save body as \n{}',(body))
+    open(usr_json, 'w', encoding='utf8').write(body)
+    return value
+   #def set_opt
 
 def get_tab_by_id(tab_id):
     for h in app.ed_handles(): 

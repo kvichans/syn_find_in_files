@@ -2,27 +2,28 @@
 Authors:
     Andrey Kvichansky    (kvichans on github.com)
 Version:
-    '1.1.13 2017-02-07'
+    '1.2.1 2017-02-09'
 ToDo: (see end of file)
 '''
 
 import  re, os, sys, locale, json, collections #, traceback
 
-import  sw              as      app
-from    sw              import  ed
-from . import cudax_lib as      apx
-#import  cudatext            as app
-#from    cudatext        import ed
-#import  cudatext_cmd        as cmds
-#import  cudax_lib           as apx
+try:
+    import  cudatext            as app
+    from    cudatext        import ed
+    import  cudax_lib           as apx
+except:
+    import  sw                  as app
+    from    sw              import ed
+    from . import cudax_lib     as apx
 
-from    .cd_plug_lib    import  *
-from    .cd_fif_api     import  *
+from    .cd_plug_lib        import *
+from    .cd_fif_api         import *
 
 OrdDict = collections.OrderedDict
 
-pass;                          #Tr.tr   = Tr(CdSw.get_opt('fif_log_file', '')) if CdSw.get_opt('fif_log_file', '') else Tr.tr
-pass;                           LOG     = (-1== 1)         or CdSw.get_opt('fif_LOG'   , False) # Do or dont logging.
+pass;                          #Tr.tr   = Tr(apx.get_opt('fif_log_file', '')) if apx.get_opt('fif_log_file', '') else Tr.tr
+pass;                           LOG     = (-1== 1)         or apx.get_opt('fif_LOG'   , False) # Do or dont logging.
 pass;                          #LOG     = (-1==-1)  # Do or dont logging.
 pass;                           from pprint import pformat
 pass;                           pf=lambda d:pformat(d,width=150)
@@ -33,9 +34,12 @@ _   = get_translation(__file__) # I18N
 VERSION     = re.split('Version:', __doc__)[1].split("'")[1]
 VERSION_V,  \
 VERSION_D   = VERSION.split(' ')
-USE_EDFIND_OPS  = CdSw.get_opt('fif_use_edfind_opt_on_start' , False)
+
+USE_EDFIND_OPS  = apx.get_opt('fif_use_edfind_opt_on_start' , False)
 DEF_LOC_ENCO    = 'cp1252' if sys.platform=='linux' else locale.getpreferredencoding()
-loc_enco        = CdSw.get_opt('fif_locale_encoding', DEF_LOC_ENCO)
+loc_enco        = apx.get_opt('fif_locale_encoding', DEF_LOC_ENCO)
+if 'sw'==app.__name__:
+    USE_EDFIND_OPS  = False
 
 GAP     = 5
 
@@ -473,7 +477,7 @@ Default values:
    #def dlg_help
 
 def dlg_fif(what='', opts={}):
-    MAX_HIST= CdSw.get_opt('ui_max_history_edits', 20)
+    MAX_HIST= apx.get_opt('ui_max_history_edits', 20)
     cfg_json= CdSw.get_setting_dir()+os.sep+'cuda_find_in_files.json'
 #   cfg_json= app.app_path(app.APP_DIR_SETTINGS)+os.sep+'cuda_find_in_files.json'
     stores  = json.loads(open(cfg_json).read(), object_pairs_hook=OrdDict) \
@@ -760,7 +764,6 @@ def dlg_fif(what='', opts={}):
         pass;                  #LOG and log('vals={}',pf(vals))
         btn,vals,fid,chds=dlg_wrapper(f(_('Find in Files ({})'), VERSION_V), dlg_w, dlg_h, cnts, vals, focus_cid=focused)     #NOTE: dlg-fif
         if btn is None or btn=='-': return None
-#       scam        = CdSw.app_proc(CdSw.PROC_GET_KEYSTATE, '') if app.app_api_version()>='1.0.143' else ''
         scam        = app.app_proc(app.PROC_GET_KEYSTATE, '') if app.app_api_version()>='1.0.143' else ''
         btn_p       = btn
         btn_m       = scam + '/' + btn if scam and scam!='a' else btn   # smth == a/smth
