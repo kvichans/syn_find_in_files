@@ -1,0 +1,105 @@
+[info]
+title=Find in Files
+desc=Gives dialog to search for multiple files containing some string/regex, like in file managers.
+type=py-plugin
+subdir=syn_find_in_files
+homepage=https://github.com/kvichans/cuda_find_in_files
+
+[ini400]
+section=Events
+id=on_goto_def
+params=on_goto_def
+
+[ini1]
+section=Commands
+id=&Find in Files\&Find in files...
+params=show_dlg
+
+[ini2]
+section=Commands
+id=&Find in Files\Find in &current tab...
+params=find_in_ed
+;menu=0
+
+[ini3]
+section=Commands
+id=&Find in Files\Find in &all tabs...
+params=find_in_tabs
+;menu=0
+
+[ini4]
+section=Commands
+id=&Find in Files\Repeat search for this report-tab...
+params=repeat_find_by_rpt
+menu=0
+
+;[ini4]
+;section=Commands
+;id=Find in Files\Undo replacements by report
+;params=undo_by_report
+;menu=0
+
+[ini10]
+section=Commands
+id=&Find in Files\-
+params=_
+
+[ini11]
+section=Commands
+id=&Find in Files\Navigate to source, to &same group
+params=nav_to_src_same
+;menu=0
+
+[ini12]
+section=Commands
+id=&Find in Files\Navigate to source, to &next group
+params=nav_to_src_next
+;menu=0
+
+[ini13]
+section=Commands
+id=&Find in Files\Navigate to source, to &prev group
+params=nav_to_src_prev
+;menu=0
+
+[ini21]
+section=Commands
+id=&Find in Files\Navigate to source, to next group, and &activate
+params=nav_to_src_next_act
+;menu=0
+
+[ini22]
+section=Commands
+id=&Find in Files\Navigate to source, to prev group, and a&ctivate
+params=nav_to_src_prev_act
+;menu=0
+
+[ini30]
+section=Commands
+id=&Find in Files\-
+params=_
+
+[ini31]
+section=Commands
+id=&Find in Files\Jump to next fragment
+params=jump_to_next_rslt
+;menu=0
+
+[ini32]
+section=Commands
+id=&Find in Files\Jump to prev fragment
+params=jump_to_prev_rslt
+;menu=0
+
+[ini33]
+section=Commands
+id=&Find in Files\Jump to next file fragment
+params=jump_to_next_file
+;menu=0
+
+[ini34]
+section=Commands
+id=&Find in Files\Jump to next folder fragment
+params=jump_to_prev_fold
+;menu=0
+
