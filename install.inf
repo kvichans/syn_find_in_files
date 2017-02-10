@@ -76,7 +76,7 @@ params=nav_to_src_prev_act
 
 [ini30]
 section=Commands
-id=&Find in Files\-
+id=&Find in Files\-2
 params=_
 
 [ini31]

@@ -2,7 +2,7 @@
 Authors:
     Andrey Kvichansky    (kvichans on github.com)
 Version:
-    '1.2.1 2017-02-09'
+    '1.2.2 2017-02-10'
 Content
     log                 Logger with timing
     get_translation     i18n
@@ -196,38 +196,6 @@ class Tr :
         # Tr.format_tm
     # Tr
 
-def get_translation(plug_file):
-    ''' Part of i18n.
-        Full i18n-cycle:
-        1. All GUI-string in code are used in form 
-            _('')
-        2. These string are extracted from code to 
-            lang/messages.pot
-           with run
-            python.exe <pypython-root>\Tools\i18n\pygettext.py -p lang <plugin>.py
-        3. Poedit (or same program) create 
-            <module>\lang\ru_RU\LC_MESSAGES\<module>.po
-           from (cmd "Update from POT") 
-            lang/messages.pot
-           It allows to translate all "strings"
-           It creates (cmd "Save")
-            <module>\lang\ru_RU\LC_MESSAGES\<module>.mo
-        4. get_translation uses the file to realize
-            _('')
-    '''
-    plug_dir= os.path.dirname(plug_file)
-    plug_mod= os.path.basename(plug_dir)
-    lng     = 'en' #app.app_proc(app.PROC_GET_LANG, '')
-    lng_mo  = plug_dir+'/lang/{}/LC_MESSAGES/{}.mo'.format(lng, plug_mod)
-    if os.path.isfile(lng_mo):
-        t   = gettext.translation(plug_mod, plug_dir+'/lang', languages=[lng])
-        _   = t.gettext
-        t.install()
-    else:
-        _   =  lambda x: x
-    return _
-
-_   = get_translation(__file__) # I18N
 
 def get_desktop_environment():
     #From http://stackoverflow.com/questions/2035657/what-is-my-current-desktop-environment
@@ -719,13 +687,6 @@ class CdSw:
     ENC_UTF8    = str(app.EDENC_UTF8_NOBOM) if 'sw'==app.__name__ else 'UTF-8'
 
     @staticmethod
-    def save(_ed):
-        if 'sw'==app.__name__:
-            return app.file_save()      ##!!
-        else:
-            return _ed.save()
-
-    @staticmethod
     def ed_group(grp):
         if 'sw'==app.__name__:
             return ed                   ##!!
@@ -742,8 +703,7 @@ class CdSw:
     @staticmethod
     def file_open(filename, group=-1):
         if 'sw'==app.__name__:
-            ##!! Activate group
-            return app.file_open(filename)
+            return app.file_open(filename, group=group)
         else:
             return app.file_open(filename, group)
 
@@ -809,6 +769,7 @@ class CdSw:
             return _ed.attr(id, **kwargs)             
 
     PROC_GET_FIND_OPTIONS   = 22 if 'sw'==app.__name__ else app.PROC_GET_FIND_OPTIONS
+    PROC_GET_LANG           = 40 if 'sw'==app.__name__ else app.PROC_GET_LANG
     @staticmethod
     def app_proc(pid, defv):
         if 'sw'!=app.__name__:
@@ -816,6 +777,8 @@ class CdSw:
         if False:pass
         elif pid==CdSw.PROC_GET_FIND_OPTIONS:
             return ''
+        elif pid==CdSw.PROC_GET_LANG:
+            return 'en'
         return ''
 
     @staticmethod
@@ -865,6 +828,40 @@ class CdSw:
         return  app.app_ini_dir()       if 'sw'==app.__name__ else \
                 app.app_path(app.APP_DIR_SETTINGS)
    #class CudSyn
+
+def get_translation(plug_file):
+    ''' Part of i18n.
+        Full i18n-cycle:
+        1. All GUI-string in code are used in form 
+            _('')
+        2. These string are extracted from code to 
+            lang/messages.pot
+           with run
+            python.exe <pypython-root>\Tools\i18n\pygettext.py -p lang <plugin>.py
+        3. Poedit (or same program) create 
+            <module>\lang\ru_RU\LC_MESSAGES\<module>.po
+           from (cmd "Update from POT") 
+            lang/messages.pot
+           It allows to translate all "strings"
+           It creates (cmd "Save")
+            <module>\lang\ru_RU\LC_MESSAGES\<module>.mo
+        4. get_translation uses the file to realize
+            _('')
+    '''
+    plug_dir= os.path.dirname(plug_file)
+    plug_mod= os.path.basename(plug_dir)
+    lng     = CdSw.app_proc(CdSw.PROC_GET_LANG, '')
+#   lng     = app.app_proc(app.PROC_GET_LANG, '')
+    lng_mo  = plug_dir+'/lang/{}/LC_MESSAGES/{}.mo'.format(lng, plug_mod)
+    if os.path.isfile(lng_mo):
+        t   = gettext.translation(plug_mod, plug_dir+'/lang', languages=[lng])
+        _   = t.gettext
+        t.install()
+    else:
+        _   =  lambda x: x
+    return _
+
+_   = get_translation(__file__) # I18N
 
 if __name__ == '__main__' :     # Tests
     pass

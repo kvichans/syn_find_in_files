@@ -2,7 +2,7 @@
 Authors:
     Andrey Kvichansky    (kvichans on github.com)
 Version:
-    '1.2.1 2017-02-09'
+    '1.2.1 2017-02-10'
 ToDo: (see end of file)
 '''
 
@@ -439,8 +439,7 @@ def report_to_tab(rpt_data:dict
 #   rpt_ed.set_caret(      0, row4crt)
 
     if AUTO_SAVE and os.path.isfile(rpt_ed.get_filename()):
-        CdSw.save(rpt_ed)
-#       rpt_ed.save()
+        rpt_ed.save()
     pass;                       LOG and log('==) stoped={}',(rpt_stop))
    #def report_to_tab
 
