@@ -1,2 +1,16 @@
+1.2.21 (2017-05-03)
+added: stop after M fragments are found
+added: hotkeys alt+y and alt+l to set depth
+added: hidden opts show into title
+added: before/after setting for count of context lines in report
+added: picture of hints in help dlg
+added: dbl-click to navigate
+added: menu cmd to config dbl-click navigation
+added: report to fixed files
+fixed: replacement doesnot start
+fixed: right-aligned labels in dlg
+fixed: regard opt mouse_goto_definition
+removed: collect 
+
 1.2.2 (2017-02-10)
 init: common with CudaText

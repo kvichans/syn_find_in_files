@@ -2,7 +2,7 @@
 Authors:
     Andrey Kvichansky    (kvichans on github.com)
 Version:
-    '1.2.1 2017-02-10'
+    '1.2.15 2017-05-03'
 ToDo: (see end of file)
 '''
 
@@ -63,7 +63,7 @@ REPORT_FAIL     = apx.get_opt('fif_report_no_matches'       , False)
 FOLD_PREV_RES   = apx.get_opt('fif_fold_prev_res'           , False)
 CLOSE_AFTER_GOOD= apx.get_opt('fif_hide_if_success'         , False)
 LEN_TRG_IN_TITLE= apx.get_opt('fif_len_target_in_title'     , 10)
-BLOCKSIZE       = apx.get_opt('fif_read_head_size'          , 1024)
+BLOCKSIZE       = apx.get_opt('fif_read_head_size(bytes)'   , apx.get_opt('fif_read_head_size', 1024))
 CONTEXT_WIDTH   = apx.get_opt('fif_context_width'           , 1)
 SKIP_FILE_SIZE  = apx.get_opt('fif_skip_file_size_more_Kb'  , 0)
 AUTO_SAVE       = apx.get_opt('fif_auto_save_if_file'       , False)
@@ -145,11 +145,11 @@ def report_to_tab(rpt_data:dict
     title_ext   = f(' ({})', what_find['find'][:LEN_TRG_IN_TITLE])
     if False:pass
     elif rpt_type['totb']==TOTB_NEW_TAB:
-        pass;                  #RPTLOG and log('!new',)
+        pass;                   RPTLOG and log('!new',)
         rpt_ed  = create_new(title_ext)
     elif rpt_type['totb']==TOTB_USED_TAB: #if reed_tab: #or join_to_end:
-        pass;                  #RPTLOG and log('!find used',)
         # Try to use prev or old
+        pass;                   RPTLOG and log('!used',)
         olds    = []
         for h in app.ed_handles(): 
             try_ed  = app.Editor(h)
@@ -167,12 +167,28 @@ def report_to_tab(rpt_data:dict
         if rpt_ed is None and olds:
             rpt_ed  = apx.get_tab_by_id(max(olds)[1])  # last used ed
             pass;              #RPTLOG and log('get from olds',)
-    else:
-        # Try to use pointed
-        the_title   = rpt_type['totb']
+    elif rpt_type['totb'].startswith('tab:'): #if reed_tab: #or join_to_end:
+        # Try to use pointed tab
+        the_title   = rpt_type['totb'][len('tab:'):]
+        pass;                   RPTLOG and log('!pointed the_title={}',(the_title))
         cands       = [app.Editor(h) for h in app.ed_handles() 
                         if app.Editor(h).get_prop(app.PROP_TAB_TITLE)==the_title]
         rpt_ed      = cands[0] if cands else None
+    elif rpt_type['totb'].startswith('file:'): 
+        # Try to use pointed file
+        the_file    = rpt_type['totb'][len('file:'):]
+        pass;                   RPTLOG and log('!pointed the_file={}',(the_file))
+        if os.path.isfile(the_file):
+            cands   = [app.Editor(h) for h in app.ed_handles() 
+                        if app.Editor(h).get_filename()==the_file]
+            if cands:
+                rpt_ed  = cands[0]
+            else:
+                app.file_open(the_file)
+                rpt_ed  = ed  
+    else:
+        pass;                   RPTLOG and log('!else',())
+        pass
             
     rpt_ed  = create_new(title_ext) if rpt_ed is None else rpt_ed
     last_rpt_tid= rpt_ed.get_prop(app.PROP_TAB_ID)
@@ -446,6 +462,7 @@ def report_to_tab(rpt_data:dict
 ############################################
 # Using report to nav
 def _open_and_nav(where:str, how_act:str, path:str, rw=-1, cl=-1, ln=-1):
+    """ Return True if nav successed. """
     pass;                       NAVLOG and log('where, how_act={}',(where, how_act))
     pass;                       NAVLOG and log('path,rw,cl,ln={}',(path,rw,cl,ln))
     op_ed   = None
@@ -484,19 +501,12 @@ def _open_and_nav(where:str, how_act:str, path:str, rw=-1, cl=-1, ln=-1):
                   int(where[3])                         \
                      if where[0:3]=='gr#'           else\
                   -1
-#       op_grp  = apx.icase(False,-1
-#                       ,app.app_proc(app.PROC_GET_GROUPING,'')==app.GROUPS_ONE , -1
-#                       ,where=='same'                                          , -1
-#                       ,where=='next'                                          , (ed_grp+1)%grps
-#                       ,where=='prev'                                          , (ed_grp-1)%grps
-#                       ,where[0:3]=='gr#'                                      , int(where[3])
-#                       ,True                                                   , -1
-#                       )
         pass;                   NAVLOG and log('ed_grp, grps, op_grp={}',(ed_grp, grps, op_grp))
         CdSw.file_open(path, op_grp)
 #       app.file_open(path, op_grp)
         op_ed   = ed
     op_ed.focus()
+    pass;                       NAVLOG and log('ok op_ed.focus()',())
     if False:pass
     elif rw==-1:
         pass
@@ -522,6 +532,7 @@ def _open_and_nav(where:str, how_act:str, path:str, rw=-1, cl=-1, ln=-1):
     else:
         the_ed  = apx.get_tab_by_id(the_ed_id)
         the_ed.focus()
+    return True
    #def _open_and_nav
 
 reSP    = re.compile(  r'(?P<S>\t+)'        # Shift !
@@ -602,18 +613,23 @@ def _get_data4nav(ted, row:int):
     shft,   \
     path,   \
     rw,cl,ln= _parse_line(line, 'all')
-    if not full:            return  [None]*4
-#   if not full:            return  app.msg_status(f(_("Line {} has no data for navigation"), 1+row))
     pass;                       NAVLOG and log('full={}', full)
     pass;                       NAVLOG and log('shft, path, rw, cl, ln={}', (shft, path, rw, cl, ln))
     pass;                       NAVLOG and log('path={}', (path))
+    if not full:
+        pass;                   NAVLOG and log('return (path, rw, cl, ln)={}', ([None]*4))
+        return  [None]*4
+#   if not full:            return  app.msg_status(f(_("Line {} has no data for navigation"), 1+row))
     if os.path.isfile(path) or path.startswith('tab:'):
+        pass;                   NAVLOG and log('return (path, rw, cl, ln)={}', (path, rw, cl, ln))
         return (path, rw, cl, ln)
 #       return _open_and_nav(where, how_act, path, rw, cl, ln)
     path    = _build_path(ted, path, row, shft)
-    if os.path.isfile(path):
+    if True: # os.path.isfile(path):
+        pass;                   NAVLOG and log('return (path, rw, cl, ln)={}', (path, rw, cl, ln))
         return (path, rw, cl, ln)
 #       return _open_and_nav(where, how_act, path, rw, cl, ln)
+#   return  [None]*4
    #def _get_data4nav
 
 def jump_to(drct:str, what:str):
@@ -708,6 +724,7 @@ def jump_to(drct:str, what:str):
        
 def nav_to_src(where:str, how_act='move'):
     """ Try to open file and navigate to row[+col+sel].
+        Return True if nav successed.
         FiF-res structure variants
             +text about finding
             ¬<abs-path>
@@ -735,8 +752,11 @@ def nav_to_src(where:str, how_act='move'):
     last_rpt_tid= ed.get_prop(app.PROP_TAB_ID)
         
     row     = crts[0][1]
-    path,rw,\
-    cl, ln  = _get_data4nav(ed, row)
+    pass;                   _t = _get_data4nav(ed, row)
+    pass;                   NAVLOG and log('_get_data4nav(ed, row)={}',(_t))
+    pass;                   path,rw,cl,ln  = _t
+#   path,rw,\
+#   cl, ln  = _get_data4nav(ed, row)
     if path and os.path.isfile(path) or path.startswith('tab:'):
         return _open_and_nav(where, how_act, path, rw, cl, ln)
     app.msg_status(f(_("Line {} has no data for navigation"), 1+row))
@@ -861,6 +881,7 @@ def find_in_files(how_walk:dict, what_find:dict, what_save:dict, how_rpt:dict, p
     rsp_i['cllc_files']     = len(files)
     rsp_i['cllc_stopped']   = cllc_stp
     
+    frst    = what_find.get('only_frst', 0)
     pttn_s  = what_find['find']
     repl_s  = what_find['repl']
     mult_b  = what_find['mult']
@@ -881,8 +902,13 @@ def find_in_files(how_walk:dict, what_find:dict, what_save:dict, how_rpt:dict, p
     spr_dirs= how_rpt['sprd']
 
     cntx    = how_rpt['cntx']
-    ext_lns = CONTEXT_WIDTH if cntx else 0
-    pass;                      #LOG and log('repl_s,ext_lns={}',(repl_s,ext_lns))
+    CONTEXT_WIDTH_U = apx.get_opt('fif_context_width_before'    , CONTEXT_WIDTH)
+    CONTEXT_WIDTH_D = apx.get_opt('fif_context_width_after'     , CONTEXT_WIDTH)
+    extU_lns= CONTEXT_WIDTH_U if cntx else 0
+    extD_lns= CONTEXT_WIDTH_D if cntx else 0
+    pass;                      #LOG and log('repl_s,extU_lns,extD_lns={}',(repl_s,extU_lns,extD_lns))
+#   ext_lns = CONTEXT_WIDTH if cntx else 0
+#   pass;                      #LOG and log('repl_s,ext_lns={}',(repl_s,ext_lns))
 
     enco_l  = how_walk.get('enco', ['UTF-8'])
     def detect_encoding(_path, _detector):
@@ -935,20 +961,25 @@ def find_in_files(how_walk:dict, what_find:dict, what_save:dict, how_rpt:dict, p
             else:
                 for mtch in mtchs:                              #NOTE: fif, line
                     _count  += 1
-                    for ext_ln in range(max(0, ln-ext_lns), ln):
+                    for ext_ln in range(max(0, ln-extU_lns), ln):
+#                   for ext_ln in range(max(0, ln-ext_lns), ln):
                         item    =       dict(row=ext_ln)
                         if lin_b:  item.update(dict(line=_lines[ext_ln]))
                         items  += [item]
                     item        =       dict(row=ln, col=mtch.start(), ln=mtch.end()-mtch.start())
                     if lin_b:      item.update(dict(line=line))
                     items      += [item]
-                    for ext_ln in range(ln+1, min(len(_lines), ln+ext_lns+1)):
+                    for ext_ln in range(ln+1, min(len(_lines), ln+extD_lns+1)):
+#                   for ext_ln in range(ln+1, min(len(_lines), ln+ext_lns+1)):
                         item    =       dict(row=ext_ln)
                         if lin_b:  item.update(dict(line=_lines[ext_ln]))
                         items  += [item]
-                    if ext_lns>0:
+                    if extU_lns+extD_lns>0:
+#                   if ext_lns>0:
                         # Separator
                         items  += [dict(row=SPRTR, line='')]
+                    if 0<frst<=(rsp_i['frgms']+_count): break#for mtch
+                   #for mtch
                 if repl_s is not None and mtchs:
                     mtch0       = mtchs[0] 
                     mtch1       = mtchs[-1] 
@@ -960,6 +991,7 @@ def find_in_files(how_walk:dict, what_find:dict, what_save:dict, how_rpt:dict, p
                                        ,line=line_new, res=1 if rn==1 else 2)]
                     _lines[ln]  = line_new
                     pass;      #LOG and log('line_new={}',(repr(line_new)))
+            if 0<frst<=(rsp_i['frgms']+_count): break#for line
            #for line
         if not _count:
             # No matches
@@ -999,6 +1031,7 @@ def find_in_files(how_walk:dict, what_find:dict, what_save:dict, how_rpt:dict, p
                 ted.set_text_all(c13.join(lines))
                 CdSw.set_caret(ted, *crts[0])
 #               ted.set_caret(      *crts[0])
+            if 0<frst<=rsp_i['frgms']: break#for path
            #for path
         return rsp_l, rsp_i
         
@@ -1072,8 +1105,8 @@ def find_in_files(how_walk:dict, what_find:dict, what_save:dict, how_rpt:dict, p
                         open(path, mode='w', encoding=enco_s, newline='').write(''.join(lines))
                     # Change text in file
                 rsp_i['brow_files']     += 1
-                if not count:
-                    break#for enco_n
+                if 0<frst<=rsp_i['frgms']:   break#for enco_n
+                if not count:               break#for enco_n
                 if prntdct:
         #           prntdct['count']+=count
         #           prntdct = prntdct['prnt']
@@ -1089,6 +1122,7 @@ def find_in_files(how_walk:dict, what_find:dict, what_save:dict, how_rpt:dict, p
                 if rpt_enc_fail and enco_n == len(enco_l)-1:
                     print(f(_('Cannot read "{}" (encoding={}/{}): {}'), path, enco_s, enco_l, ex))
            #for encd_n
+        if 0<frst<=rsp_i['frgms']:   break#for path
        #for path
     pass;                      #t=None
     pass;                      #FNDLOG and log('rsp_l=¶{}',pf(rsp_l))
@@ -1229,10 +1263,10 @@ def collect_files(how_walk:dict, progressor=None)->tuple:       #NOTE: cllc
             if hidn and is_hidden_file(path):                               continue#for filename
             if binr and is_birary_file(path):                               continue#for filename
             rsp    += [path]
-            if  not sort and len(rsp)>=frst>0:
+            if  not sort and 0<frst<=len(rsp):
                 break#for filename
            #for filename
-        if      not sort and len(rsp)>=frst>0:
+        if      not sort and 0<frst<=len(rsp):
             pass;               LOG and log('break by >frst',())
             break#for dirpath
         if depth==0:
@@ -1241,13 +1275,14 @@ def collect_files(how_walk:dict, progressor=None)->tuple:       #NOTE: cllc
        #for dirpath
     if sort:
         tm_pth  = [(os.path.getmtime(path),path) for path in rsp]
+        pass;                  #log('tm_pth={}',(tm_pth))
         rsp     = [tp[1] for tp in sorted(tm_pth, reverse=(sort=='date,desc'))]
         pass;                  #rsp_srt = sorted(tm_pth, reverse=(sort=='date,desc'))
         pass;                  #log('rsp_srt={}',(rsp_srt))
         pass;                  #log('zip(*...)[1]={}',(list(list(zip(*rsp_srt))[1])))
         pass;                  #log('rsp         ={}',(rsp))
         pass;                  #log('rsp==zip(*...)[1] {}',(rsp==list(list(zip(*rsp_srt))[1])))
-        if len(rsp)>=frst>0:
+        if 0<frst<len(rsp):
             rsp = rsp[:frst]
     pass;                       LOG and log('|rsp|, stoped={}',(len(rsp), stoped))
     return rsp, stoped

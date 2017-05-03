@@ -7,8 +7,8 @@ homepage=https://github.com/kvichans/cuda_find_in_files
 
 [ini400]
 section=Events
-id=on_goto_def
-params=on_goto_def
+id=syn_find_in_files
+params=on_goto_def,on_click_dbl
 
 [ini1]
 section=Commands
@@ -70,8 +70,14 @@ params=nav_to_src_next_act
 
 [ini22]
 section=Commands
-id=&Find in Files\Navigate to source, to prev group, and a&ctivate
+id=&Find in Files\Navigate to source, to prev group, and act&ivate
 params=nav_to_src_prev_act
+;menu=0
+
+[ini29]
+section=commands
+id=&Find in Files\Configurate navigation with &double-click...
+params=dlg_nav_by_dclick
 ;menu=0
 
 [ini30]
@@ -100,6 +106,6 @@ params=jump_to_next_file
 [ini34]
 section=Commands
 id=&Find in Files\Jump to next folder fragment
-params=jump_to_prev_fold
+method=jump_to_next_fold
 ;menu=0
 

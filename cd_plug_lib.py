@@ -2,7 +2,7 @@
 Authors:
     Andrey Kvichansky    (kvichans on github.com)
 Version:
-    '1.2.2 2017-02-10'
+    '1.2.21 2017-05-03'
 Content
     log                 Logger with timing
     get_translation     i18n
@@ -24,15 +24,17 @@ except:
 
 pass;                           # Logging
 pass;                           from pprint import pformat
+pass;                           import tempfile
 
 GAP         = 5
 c13,c10,c9  = chr(13),chr(10),chr(9)
 REDUCTS = {'lb'     :'label'
         ,  'ln-lb'  :'linklabel'
-        ,  'ed'     :'edit'
-        ,  'sp-ed'  :'spinedit'
-        ,  'me'     :'memo'
-        ,  'bt'     :'button'
+        ,  'ed'     :'edit'             # ro_mono_brd
+#       ,  'ed_pw'  :'edit_pwd'
+        ,  'sp-ed'  :'spinedit'         # min_max_inc
+        ,  'me'     :'memo'             # ro_mono_brd
+        ,  'bt'     :'button'           # def_bt
         ,  'rd'     :'radio'
         ,  'ch'     :'check'
         ,  'ch-bt'  :'checkbutton'
@@ -40,11 +42,17 @@ REDUCTS = {'lb'     :'label'
         ,  'rd-gp'  :'radiogroup'
         ,  'cb'     :'combo'
         ,  'cb-ro'  :'combo_ro'
+        ,  'cb-r'   :'combo_ro'
         ,  'lbx'    :'listbox'
         ,  'ch-lbx' :'checklistbox'
         ,  'lvw'    :'listview'
         ,  'ch-lvw' :'checklistview'
         ,  'tabs'   :'tabs'
+        ,  'clr'    :'colorpanel'
+        ,  'im'     :'image'
+#       ,  'f-lb'   :'filter_listbox'
+#       ,  'f-lvw'  :'filter_listview'
+#       ,  'fr'     :'bevel'
         }
 
 def f(s, *args, **kwargs):return s.format(*args, **kwargs)
@@ -307,6 +315,8 @@ def fit_top_by_env(what_tp, base_tp='label'):
     return fit_top_by_env__cash.setdefault((what_tp, base_tp), fit)
    #def fit_top_by_env
 
+def rgb_to_int(r,g,b):
+    return r | (g<<8) | (b<<16)
 def dlg_wrapper(title, w, h, cnts, in_vals={}, focus_cid=None):
     """ Wrapper for dlg_custom. 
         Params
@@ -379,6 +389,15 @@ def dlg_wrapper(title, w, h, cnts, in_vals={}, focus_cid=None):
         no_vids = {cid          for   cid in    in_vals if                          cid not in cid2i}
         if no_vids:
             raise Exception(f('No cid(s) for vals: {}', no_vids))
+    
+    simpp   = ['props'
+              ,'cap','hint'
+              ,'color'
+              ,'font_name', 'font_size', 'font_color', 'font'
+              ,'act'
+              ,'en','vis'
+             #,'tag'
+              ]
     ctrls_l = []
     for cnt in cnts:
         tp      = cnt['tp']
@@ -389,18 +408,53 @@ def dlg_wrapper(title, w, h, cnts, in_vals={}, focus_cid=None):
             l   = cnt.get('l', 0)                   # def: from DlgLeft
             r   = cnt.get('r', l+cnt.get('w', w))   # def: to   DlgRight
             lst = ['type=label']
-            lst+= ['cap='+'—'*1000]
-            lst+= ['en=0']
+            lst+= ['vis={}'.format('1' if (cnt.get('vis', True) in (True,'1')) else '0')]
+            lst+= ['cap='+'—'*200]
+            lst+= ['font_color='+str(rgb_to_int(185,185,185))]
             lst+= ['pos={l},{t},{r},0'.format(l=l,t=t,r=r)]
             ctrls_l+= [chr(1).join(lst)]
             continue#for cnt
             
         lst     = ['type='+tp]
-        # Simple props
-        for k in ['cap', 'hint', 'props']:
-            if k in cnt:
-                lst += [k+'='+str(cnt[k])]
-        # Props with preparation
+
+        # Preprocessor
+#       if tp=='--':
+##           tp              = 'colorpanel'
+##           cnt['h']        = 1
+##           cnt['props']    = f('0,{},0,0',rgb_to_int(185,185,185)) # brdW_fillC_fontC_brdC
+#           tp              = 'label'
+#           cnt['cap']      = '—'*300
+#           cnt['font_color']=str(rgb_to_int(185,185,185))
+#           cnt['l']        = cnt.get('l', 0)
+#           cnt['r']        = cnt.get('r', l+cnt.get('w', 5000))    # def: to   DlgRight
+        
+        if 'props' in cnt:
+            pass
+        elif tp=='label' and cnt['cap'][0]=='>':
+            #   cap='>smth' --> cap='smth', props='1' (r-align)
+            cnt['cap']  = cnt['cap'][1:]
+            cnt['props']= '1'
+        elif tp=='label' and cnt.get('ralign'):
+            cnt['props']=    cnt.get('ralign')
+        elif tp=='button' and cnt.get('def_bt') in ('1', True):
+            cnt['props']= '1'
+        elif tp=='spinedit' and cnt.get('min_max_inc'):
+            cnt['props']=       cnt.get('min_max_inc')
+        elif tp=='linklabel' and cnt.get('url'):
+            cnt['props']=        cnt.get('url')
+        elif tp=='listview' and cnt.get('grid'):
+            cnt['props']=       cnt.get('grid')
+        elif tp=='tabs' and cnt.get('at_botttom'):
+            cnt['props']=   cnt.get('at_botttom')
+        elif tp=='colorpanel' and cnt.get('brdW_fillC_fontC_brdC'):
+            cnt['props']=         cnt.get('brdW_fillC_fontC_brdC')
+        elif tp in ('edit', 'memo') and cnt.get('ro_mono_brd'):
+            cnt['props']=               cnt.get('ro_mono_brd')
+
+#       # Simple props
+#       for k in ['cap', 'hint', 'props', 'font_name', 'font_size', 'font_color', 'font', 'name']:
+#               lst += [k+'='+str(cnt[k])]
+
         # Position:
         #   t[op] or tid, l[eft] required
         #   w[idth]  >>> r[ight ]=l+w
@@ -413,13 +467,9 @@ def dlg_wrapper(title, w, h, cnts, in_vals={}, focus_cid=None):
             bs_cnt  = cnts[cid2i[cnt['tid']]]
             bs_tp   = bs_cnt['tp']
             t       = bs_cnt['t'] + fit_top_by_env(tp, REDUCTS.get(bs_tp, bs_tp))
-#           t       = bs_cnt['t'] + top_plus_for_os(tp, REDUCTS.get(bs_tp, bs_tp))
         r       = cnt.get('r', l+cnt.get('w', 0)) 
         b       = cnt.get('b', t+cnt.get('h', 0)) 
         lst    += ['pos={l},{t},{r},{b}'.format(l=l,t=t,r=r,b=b)]
-        if 'en' in cnt:
-            val     = cnt['en']
-            lst    += ['en='+('1' if val in [True, '1'] else '0')]
 
         if 'items' in cnt:
             items   = cnt['items']
@@ -459,22 +509,27 @@ def dlg_wrapper(title, w, h, cnts, in_vals={}, focus_cid=None):
                 in_val = ';'.join( (str(in_val[0]), ','.join( in_val[1]) ) )
             lst+= ['val='+str(in_val)]
 
-        if 'act' in cnt:    # must be last in lst
-            val     = cnt['act']
-            lst    += ['act='+('1' if val in [True, '1'] else '0')]
+        # Simple props
+        for k in simpp:
+            if k in cnt:
+                v   = cnt[k]
+                v   = ('1' if v else '0') if isinstance(v, bool) else str(v)
+                lst += [k+'='+v]
         pass;                  #log('lst={}',lst)
         ctrls_l+= [chr(1).join(lst)]
        #for cnt
     pass;                      #log('ok ctrls_l={}',pformat(ctrls_l, width=120))
 
-    pass;                      #ctrls_fn=r'c:\temp\dlg_custom_ctrls.txt'
+    pass;                      #ctrls_fn=tempfile.gettempdir()+os.sep+'dlg_custom_ctrls.txt'
     pass;                      #open(ctrls_fn, 'w', encoding='UTF-8').write('\n'.join(ctrls_l).replace('\r',''))
     pass;                      #log(f(r'app.dlg_custom("{t}",{w},{h},open(r"{fn}",encoding="UTF-8").read(), {f})',t=title, w=w, h=h, fn=ctrls_fn, f=cid2i.get(focus_cid, -1)))
     ans     = app.dlg_custom(title, w, h, '\n'.join(ctrls_l), cid2i.get(focus_cid, -1))
     if ans is None: return None, None, None, None   # btn_cid, {cid:v}, focus_cid, [cid]
+    pass;                      #log('ans={})',ans)
 
     btn_i,  \
     vals_ls = ans[0], ans[1].splitlines()
+    pass;                      #log('btn_i,vals_ls={})',(btn_i,vals_ls))
 
     focus_cid   = ''
     if vals_ls[-1].startswith('focused='):
@@ -482,6 +537,7 @@ def dlg_wrapper(title, w, h, cnts, in_vals={}, focus_cid=None):
         focus_n_s   = vals_ls.pop()
         focus_i     = int(focus_n_s.split('=')[1])
         focus_cid   = cnts[focus_i].get('cid', '')
+        pass;                  #log('btn_i,vals_ls,focus_cid={})',(btn_i,vals_ls,focus_cid))
 
     act_cid     = cnts[btn_i]['cid']
     # Parse output values
@@ -492,6 +548,7 @@ def dlg_wrapper(title, w, h, cnts, in_vals={}, focus_cid=None):
         tp      = REDUCTS.get(tp, tp)
         in_val  = in_vals[cid]
         an_val  = an_vals[cid]
+        pass;                  #log('tp,in_val,an_val={})',(tp,in_val,an_val))
         if False:pass
         elif tp=='memo':
             # For memo: "\t"-separated lines (in lines "\t" must be replaced to chr(2)) 
@@ -515,6 +572,7 @@ def dlg_wrapper(title, w, h, cnts, in_vals={}, focus_cid=None):
             an_val = -1 if an_val=='' else int(an_val)
         else: 
             an_val = type(in_val)(an_val)
+            pass;              #log('type(in_val),an_val={})',(type(in_val),an_val))
         an_vals[cid]    = an_val
        #for cid
     chds    = [cid for cid in in_vals if in_vals[cid]!=an_vals[cid]]
@@ -532,12 +590,7 @@ def dlg_wrapper(title, w, h, cnts, in_vals={}, focus_cid=None):
 
 def dlg_valign_consts():
     pass;                      #log('ok')
-    UP      = '/\\'
-    UP      = '↑↑'
-#   UP      = 'ΛΛΛ'
-    DN      = '\\/'
-    DN      = '↓↓'
-#   DN      = 'VVV'
+    UP,DN   = '↑↑','↓↓'
     DLG_W,  \
     DLG_H   = 335, 280
     fits    = dict(
@@ -549,6 +602,16 @@ def dlg_valign_consts():
               ,_sp6=fit_top_by_env('checkbutton')
               ,_sp7=fit_top_by_env('linklabel')
               ,_sp8=fit_top_by_env('spinedit')
+              )
+    hints   = dict(
+               _sp1=f('{} check', fits['_sp1'])
+              ,_sp2=f('{} edit', fits['_sp2'])
+              ,_sp3=f('{} button', fits['_sp3'])
+              ,_sp4=f('{} combo_ro', fits['_sp4'])
+              ,_sp5=f('{} combo', fits['_sp5'])
+              ,_sp6=f('{} checkbutton', fits['_sp6'])
+              ,_sp7=f('{} linklabel', fits['_sp7'])
+              ,_sp8=f('{} spinedit', fits['_sp8'])
               )
     vals    = dict(
                ch1 =False
@@ -562,42 +625,42 @@ def dlg_valign_consts():
     while True:
         aid, vals, fid, chds = dlg_wrapper(_('Adjust vertical alignments')   ,DLG_W, DLG_H, 
             [dict(cid='lb1'     ,tp='lb'    ,t= 10              ,l=  5  ,w=100  ,cap='==============='                          )
-            ,dict(cid='ch1'     ,tp='ch'    ,t= 10+fits['_sp1'] ,l=115  ,w=100  ,cap='=======?'             ,hint=fits['_sp1']  )
+            ,dict(cid='ch1' ,tp='ch'    ,t= 10+fits['_sp1'] ,l=115  ,w=100  ,cap='=======?'         ,hint=hints['_sp1'] )
             ,dict(cid='up1'     ,tp='bt'    ,t= 10-3            ,l=230  ,w=50   ,cap=UP                                         )
             ,dict(cid='dn1'     ,tp='bt'    ,t= 10-3            ,l=280  ,w=50   ,cap=DN                                         )
                 
             ,dict(cid='lb2'     ,tp='lb'    ,t= 40              ,l=  5  ,w=100  ,cap='==============='                          )
-            ,dict(cid='ed2'     ,tp='ed'    ,t= 40+fits['_sp2'] ,l=115  ,w=100                              ,hint=fits['_sp2']  )
+            ,dict(cid='ed2' ,tp='ed'    ,t= 40+fits['_sp2'] ,l=115  ,w=100                          ,hint=hints['_sp2'] )
             ,dict(cid='up2'     ,tp='bt'    ,t= 40-3            ,l=230  ,w=50   ,cap=UP                                         )
             ,dict(cid='dn2'     ,tp='bt'    ,t= 40-3            ,l=280  ,w=50   ,cap=DN                                         )
                 
             ,dict(cid='lb3'     ,tp='lb'    ,t= 70              ,l=  5  ,w=100  ,cap='==============='                          )
-            ,dict(cid='bt3'     ,tp='bt'    ,t= 70+fits['_sp3'] ,l=115  ,w=100  ,cap='=======?'             ,hint=fits['_sp3']  )
+            ,dict(cid='bt3' ,tp='bt'    ,t= 70+fits['_sp3'] ,l=115  ,w=100  ,cap='=======?'         ,hint=hints['_sp3'] )
             ,dict(cid='up3'     ,tp='bt'    ,t= 70-3            ,l=230  ,w=50   ,cap=UP                                         )
             ,dict(cid='dn3'     ,tp='bt'    ,t= 70-3            ,l=280  ,w=50   ,cap=DN                                         )
                 
             ,dict(cid='lb4'     ,tp='lb'    ,t=100              ,l=  5  ,w=100  ,cap='==============='                          )
-            ,dict(cid='cbo4'    ,tp='cb-ro' ,t=100+fits['_sp4'] ,l=115  ,w=100  ,items=['=======?']         ,hint=fits['_sp4']  )
+            ,dict(cid='cbo4',tp='cb-ro' ,t=100+fits['_sp4'] ,l=115  ,w=100  ,items=['=======?']     ,hint=hints['_sp4'] )
             ,dict(cid='up4'     ,tp='bt'    ,t=100-3            ,l=230  ,w=50   ,cap=UP                                         )
             ,dict(cid='dn4'     ,tp='bt'    ,t=100-3            ,l=280  ,w=50   ,cap=DN                                         )
                 
             ,dict(cid='lb5'     ,tp='lb'    ,t=130              ,l=  5  ,w=100  ,cap='==============='                          )
-            ,dict(cid='cb5'     ,tp='cb'    ,t=130+fits['_sp5'] ,l=115  ,w=100  ,items=['=======?']         ,hint=fits['_sp5']  )
+            ,dict(cid='cb5' ,tp='cb'    ,t=130+fits['_sp5'] ,l=115  ,w=100  ,items=['=======?']     ,hint=hints['_sp5'] )
             ,dict(cid='up5'     ,tp='bt'    ,t=130-3            ,l=230  ,w=50   ,cap=UP                                         )
             ,dict(cid='dn5'     ,tp='bt'    ,t=130-3            ,l=280  ,w=50   ,cap=DN                                         )
                 
             ,dict(cid='lb6'     ,tp='lb'    ,t=160              ,l=  5  ,w=100  ,cap='==============='                          )
-            ,dict(cid='chb6'    ,tp='ch-bt' ,t=160+fits['_sp6'] ,l=115  ,w=100  ,cap='=======?'             ,hint=fits['_sp6']  )
+            ,dict(cid='chb6',tp='ch-bt' ,t=160+fits['_sp6'] ,l=115  ,w=100  ,cap='=======?'         ,hint=hints['_sp6'] )
             ,dict(cid='up6'     ,tp='bt'    ,t=160-3            ,l=230  ,w=50   ,cap=UP                                         )
             ,dict(cid='dn6'     ,tp='bt'    ,t=160-3            ,l=280  ,w=50   ,cap=DN                                         )
                 
             ,dict(cid='lb7'     ,tp='lb'    ,t=190              ,l=  5  ,w=100  ,cap='==============='                          )
-            ,dict(cid='chb7'    ,tp='ln-lb' ,t=190+fits['_sp7'] ,l=115  ,w=100  ,cap='=======?',props='-'   ,hint=fits['_sp7']  )
+            ,dict(cid='chb7',tp='ln-lb' ,t=190+fits['_sp7'] ,l=115  ,w=100  ,cap='=======?'         ,props=hints['_sp7'])
             ,dict(cid='up7'     ,tp='bt'    ,t=190-3            ,l=230  ,w=50   ,cap=UP                                         )
             ,dict(cid='dn7'     ,tp='bt'    ,t=190-3            ,l=280  ,w=50   ,cap=DN                                         )
                 
             ,dict(cid='lb8'     ,tp='lb'    ,t=220              ,l=  5  ,w=100  ,cap='4444444444444444'                         )
-            ,dict(cid='sp8'     ,tp='sp-ed' ,t=220+fits['_sp8'] ,l=115  ,w=100  ,props='0,4444444,1'        ,hint=fits['_sp8']  )
+            ,dict(cid='sp8' ,tp='sp-ed' ,t=220+fits['_sp8'] ,l=115  ,w=100  ,props='0,4444444,1'    ,hint=hints['_sp8'] )
             ,dict(cid='up8'     ,tp='bt'    ,t=220-3            ,l=230  ,w=50   ,cap=UP                                         )
             ,dict(cid='dn8'     ,tp='bt'    ,t=220-3            ,l=280  ,w=50   ,cap=DN                                         )
                 
@@ -788,7 +851,10 @@ class CdSw:
             if endx==-1:    # no sel
                 return _ed.set_caret_xy(posx, posy)
             else:           # with sel
-                return _ed.set_caret_xy(posx, posy) ##!!
+                pos = _ed.xy_pos(posx, posy)
+                end = _ed.xy_pos(endx, endy)
+                return _ed.set_sel(pos, end-pos)
+#               return _ed.set_caret_xy(posx, posy) ##!!
         else:
            #set_caret(posx, posy, endx=-1, endy=-1)
             return _ed.set_caret(posx, posy, endx, endy)
@@ -860,6 +926,7 @@ def get_translation(plug_file):
     else:
         _   =  lambda x: x
     return _
+   #def get_translation
 
 _   = get_translation(__file__) # I18N
 
